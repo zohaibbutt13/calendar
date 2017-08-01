@@ -5,50 +5,35 @@ require 'colorize'
 class Calendar
   def initialize
     @all_events = {}
+    @event_object = EventInfo.new
   end
-
-  def put_event date
-    count = 0
-    @all_events.each do |key, value|
-      if key == date
-        count = value.length
-      end
+  def get_event_count(date)
+    no_of_events = 0
+    if @all_events.has_key? date
+      no_of_events = @all_events[date].length
     end
-    count
+    no_of_events
   end
 
-  def show_calendar(month, year)
-    total_days = Date.new(year,month,-1).mday
-    tabs = Date.parse(Time.now.strftime("01/%m/%Y")).wday
+  def show_calendar(month = Time.now.month, year = Time.now.year)
+    tabs = Date.parse(Time.new(year,month).strftime("01/%m/%Y")).wday
     puts "S\tM\tT\tW\tT\tF\tS\t".blue
-    @i = 0
 
-    tabs.times do 
-      print "\t"
-      @i += 1
-    end
+    print "\t"*tabs
 
-    total_days.times do |day|
-      count = put_event("#{day + 1}-#{month}-#{year}")
+    Date.new(year, month, -1).mday.times do |day|
+      count = get_event_count("#{day + 1}-#{month}-#{year}")
       if count > 0
         print "#{day + 1}(#{count})\t".blue
       else
         print "#{day + 1} \t"
       end
-      @i += 1
-      if @i % 7 == 0
+      if Date.parse("#{year}-#{month}-#{day + 1}").to_date.saturday?
         puts ""
       end
     end
     puts ""
     puts ""
-  end
-
-  def current_month_calendar
-    time = Time.now
-    month = time.month
-    year = time.year
-    show_calendar(month, year)
   end
 
   def any_month_calendar
@@ -59,26 +44,21 @@ class Calendar
         loop do
           print "Enter year: "
           year = Integer(gets)
-          if year != nil && year != "" && year >= 1500 && year <= 3000
+          if year != nil && year != "" && year >= 0
             break
           else
-            puts "Year can be between 1500 to 3000".yellow
+            puts "Year cannot be less than 1".yellow
           end
         end
         loop do
           print "Enter month: "
           month = Integer(gets)
-          if month != nil && month != "" && month >= 1 && month <= 12
+          if Date.valid_date?(year, month, 1)
+            show_calendar(month, year)
             break
           else
             puts "Month can be between 1 to 12".yellow
           end
-        end
-        if Date.valid_date?(year,month,1)
-          show_calendar(month, year)
-          break
-        else
-          puts "Invalid date".red
         end
         break
       rescue => e
@@ -95,8 +75,8 @@ class Calendar
     title = nil
     desc = nil
     venue = nil
-  loop do
-    begin
+    loop do
+      begin
         print "Enter title: "
         title = gets.chomp
         if title != nil && title != ""
@@ -111,11 +91,14 @@ class Calendar
     print "Enter venue: "
     venue = gets.chomp
 
-    event_object = EventInfo.new(title,desc,venue)
+    @event_object.title = title
+    @event_object.description = desc
+    @event_object.venue = venue
+
     if @all_events.has_key? date
-      @all_events[date].push event_object
+      @all_events[date].push @event_object
     else
-      @all_events[date] = [event_object]
+      @all_events[date] = [@event_object]
     end
     puts "Event added successfuly".green
     puts ""
@@ -130,10 +113,10 @@ class Calendar
         begin
           print "Enter year: "
           year = Integer(gets)
-          if year != nil && year != 0 && year > 1500 && year < 3000
+          if year != nil && year != 0 && year >= 1
             break
           else
-            puts "Year can be between 1500 to 3000".yellow
+            puts "Year cannot be less than 1".yellow
           end
         rescue
           puts "Invalid Year".red
@@ -181,23 +164,20 @@ class Calendar
     date = validate_date
     puts ""
     events = @all_events[date]
-    if events != nil
+    if events
       puts "---------- Date: #{date} ----------".blue
-      events.each do |item|
-        puts "Title: #{item.title}"
-        puts "Description: #{item.description}"
-        puts "Venue: #{item.venue}"
+      events.each do |event|
+        puts "Title: #{event.title}"
+        puts "Description: #{event.description}"
+        puts "Venue: #{event.venue}"
         puts ""
         if events.length > 1
           puts "--------------------------------------".blue
         end
       end
     else
-      puts "No event on the given date".red
+      puts "No event on the given date".yellow
     end
     puts ""
   end
 end
-
-#obj = Calendar.new
-#obj.show_current_calender 
